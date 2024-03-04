@@ -168,19 +168,25 @@ public:
 };
 template<typename Destination, typename PixelType>
 void draw_square(Destination& destination, const gfx::rect16& bounds, PixelType col) {
+    // get some x11 colors in HSL 24 bit
     using x11 = gfx::color<gfx::hsl_pixel<24>>;
-    static const PixelType white = gfx::convert<gfx::hsl_pixel<24>,PixelType>(x11::white);
-    static const PixelType black = gfx::convert<gfx::hsl_pixel<24>,PixelType>(x11::black);
+    // get black and white and convert them to the target pixel type
+    constexpr static const PixelType white = gfx::convert<gfx::hsl_pixel<24>,PixelType>(x11::white);
+    constexpr static const PixelType black = gfx::convert<gfx::hsl_pixel<24>,PixelType>(x11::black);
     const gfx::rect16 b = bounds.normalize();
+    // if our dimensions are small enough, just do a simple fill
     if((b.x2-b.x1+1)<3 || (b.y2-b.y1+1)<3) {
         destination.fill(b,col);
         return;
     }
+    // otherwise, draw a 3d tile
     const gfx::rect16 rb = b.inflate(-1,-1);
     destination.fill(rb,col);
+    // make the lighter color
     PixelType px2 = col.blend(white,0.5f);
     destination.fill(gfx::rect16(b.x1,b.y1,b.x2-1,b.y1),px2);
     destination.fill(gfx::rect16(b.x2,b.y1,b.x2,b.y2-1),px2);
+    // make the darker color
     px2 = col.blend(black,0.5f);
     destination.fill(gfx::rect16(b.x2,b.y2,b.x1+1,b.y2),px2);
     destination.fill(gfx::rect16(b.x1,b.y2,b.x1,b.y1+1),px2);
@@ -220,19 +226,6 @@ private:
         }
         return gfx::size16(w/target,screen_dimensions.height/target);
     }
-    bool check_rot_bounds() {
-        const gfx::size16 b = { m_current.dimensions().width, m_current.dimensions().height };
-        const gfx::rect16 r(m_current.location(),b);
-        const uint16_t w = m_board.dimensions().width;
-        const uint16_t h = m_board.dimensions().height;
-        if(r.x2>=w) {
-            return false;
-        }
-        if(r.y2>=h) {
-            return false;
-        }
-        return true;
-    }
     bool advance() {
         if(!move_down()) {
             bool done = m_current.location().y==0;
@@ -255,14 +248,6 @@ private:
         }
         return true;
     }
-public:
-    tetris() : m_dropping(false), m_advance_time(0),m_advance_ts(0),m_running(false),m_dirty(false) {
-    }
-    gfx::size16 dimensions() const { return m_dimensions; }
-    void dimensions(gfx::size16 dimensions) { m_dimensions = dimensions; m_board.dimensions(game_dimensions_from_screen_dimensions(dimensions)); m_square_dimensions = square_dimensions_from_screen_dimensions(dimensions); restart(); }
-    gfx::size16 board_dimensions() const {
-        return m_board.dimensions();
-    }
     void next() {
         m_current = m_next;
         m_dirty = true;
@@ -274,6 +259,14 @@ public:
         piece_pixel_type pxi(i);
         m_next.color(pxi);
         m_next.location(gfx::point16((m_board.dimensions().width-m_next.dimensions().width)/2,0));
+    }
+public:
+    tetris() : m_dropping(false), m_advance_time(0),m_advance_ts(0),m_running(false),m_dirty(false) {
+    }
+    gfx::size16 dimensions() const { return m_dimensions; }
+    void dimensions(gfx::size16 dimensions) { m_dimensions = dimensions; m_board.dimensions(game_dimensions_from_screen_dimensions(dimensions)); m_square_dimensions = square_dimensions_from_screen_dimensions(dimensions); restart(); }
+    gfx::size16 board_dimensions() const {
+        return m_board.dimensions();
     }
     void restart() {
         m_board.clear();
@@ -373,7 +366,6 @@ public:
             loc.x =m_board.dimensions().width-m_current.dimensions().width;
         }
         if(m_current.bounds().y2>=m_board.dimensions().height) {
-            //loc.y =m_board.dimensions().height-m_current.dimensions().height;
             m_current.rotate_left();
             return false;
         }
@@ -393,8 +385,6 @@ public:
             loc.x =m_board.dimensions().width-m_current.dimensions().width;
         }
         if(m_current.bounds().y2>=m_board.dimensions().height) {
-            //loc.y =m_board.dimensions().height-m_current.dimensions().height;
-            //loc.y =m_board.dimensions().height-m_current.dimensions().height;
             m_current.rotate_right();
             return false;
         }
@@ -431,7 +421,9 @@ public:
         for(int y = 0;y<dimensions().height;++y) {
             for(int x = 0;x<dimensions().width;++x) {
                 const gfx::point16 bpt(x,y);
-                const gfx::rect16 rsq(gfx::point16(x*m_square_dimensions.width,y*m_square_dimensions.height),m_square_dimensions);
+                const gfx::rect16 rsq(gfx::point16(x*m_square_dimensions.width,
+                                                y*m_square_dimensions.height),
+                                            m_square_dimensions);
                 if(m_current.hit_test(bpt)) {
                     draw_square(destination,rsq,ccol);
                 } else {

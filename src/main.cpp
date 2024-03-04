@@ -69,6 +69,7 @@ void loop()
         // resume display
         draw::resume(panel);
     }
+    
     // if not connected, just move 
     // back and forth and rotate
     if(!watchdog_ts) {
@@ -76,19 +77,22 @@ void loop()
         static bool delta = true;
         if(millis()>ts+game.advance_time()/2) {
             ts = millis();
-            if(delta) {
-                if(!game.move_right()) {
-                    delta = false;
-                    game.move_left();
+            for(int i = 0;i<rand()%4;++i) {
+                switch(rand()%4) {
+                    case 0:
+                        game.move_left();
+                        break;
+                    case 1:
+                        game.move_right();
+                        break;
+                    case 2:
+                        game.rotate_right();
+                        break;
+                    case 3:
+                        break;
                 }
-                game.rotate_left();
-            } else {
-                if(!game.move_left()) {
-                    delta = true;
-                    game.move_right();
-                }
-                game.rotate_right();
             }
+            
         }
     }
     // pump the game loop
