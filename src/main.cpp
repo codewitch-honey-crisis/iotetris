@@ -2,34 +2,38 @@
 #include <gfx.hpp>
 #include "config.h"
 #include "interface.h"
-#ifdef M5STACK_CORE2
-#include "m5core2_power.hpp"
-static m5core2_power power;
-#endif
 #include "tetris.hpp"
+// import the htcw_gfx primary namespace
 using namespace gfx;
 
+// create a tetris board that can draw to our panel
 using tetris_t = tetris<typename panel_t::pixel_type>;
 tetris_t game;
 void setup()
 {
     Serial.begin(115200);
 #ifdef M5STACK_CORE2
+    // m5 stack core2 requires
+    // power management chip
+    // to be tickled
     power.initialize();
 #endif
     panel.initialize();
+    // set up the game and start it
     game.dimensions(panel.dimensions());
     game.restart();
 }
 
 void loop()
 {
-    static bool isconnected = false;
+    // timeout value for connection detection
     static uint32_t watchdog_ts = 0;
+    // any serial data?
     int cmd = Serial.read();
-    if(-1!=cmd) {
-        isconnected = true;
+    if(-1!=cmd) { // process it
+        // start/restart the connection watchdog
         watchdog_ts = millis();
+        // move according to serial input
         switch((CMD_ID)cmd) {
             case CMD_MOVE_LEFT:
                 game.move_left();
@@ -50,17 +54,24 @@ void loop()
                 break;
         }
     }
+    // if we haven't had serial input for 1 second
+    // go back to automated mode
     if(watchdog_ts!=0 && millis()>watchdog_ts+1000) {
         watchdog_ts = 0;
-        isconnected = false;
     }
-    
-    if(game.needs_draw()) {    
+    // check if the game board is dirty
+    if(game.needs_draw()) {
+        // if so, suspend all display
+        // (only does anything on supporting devices)
         draw::suspend(panel);
+        // draw the game at (0,0)
         game.draw(panel,point16::zero());
+        // resume display
         draw::resume(panel);
     }
-    if(!isconnected) {
+    // if not connected, just move 
+    // back and forth and rotate
+    if(!watchdog_ts) {
         static uint32_t ts = 0;
         static bool delta = true;
         if(millis()>ts+game.advance_time()/2) {
@@ -80,9 +91,12 @@ void loop()
             }
         }
     }
+    // pump the game loop
     game.update();
+    // if it's not running anymore
+    // that means game over
     if(!game.running()) {
+        // just restart it
         game.restart();
     }
-    //delay(250);
 }

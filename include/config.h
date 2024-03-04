@@ -4,6 +4,8 @@
 #ifdef M5STACK_CORE2
 #include <tft_io.hpp>
 #include <ili9341.hpp>
+#include <m5core2_power.hpp>
+static m5core2_power power;
 #define LCD
 #define LCD_SPI_HOST    VSPI
 #define LCD_DMA
