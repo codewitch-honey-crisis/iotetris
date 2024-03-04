@@ -85,6 +85,17 @@ using panel_t = neopixel_panel;
 LED_TYPE leds(LED_PIN,LED_HRES*LED_VRES);
 panel_t panel(leds,LED_HRES,LED_SWAP_XY,LED_MIRROR_X,LED_MIRROR_Y,LED_SNAKE_LAYOUT);
 #endif
+#ifdef WIO_TERMINAL
+#include <tft_spi.hpp>
+#include <ili9341.hpp>
+#define LCD
+#define LCD_VRES 320
+#define LCD_HRES 240
+using bus_t = arduino::tft_spi_ex<3,LCD_SS_PIN,SPI_MODE0>;
+using panel_t = arduino::ili9341<LCD_DC,LCD_RESET,LCD_BACKLIGHT,bus_t,3,true,400,200>;
+static panel_t panel;
+#endif // WIO_TERMINAL
+
 #ifdef LCD
 #ifndef LCD_WIDTH
 #ifdef LCD_SWAP_XY
