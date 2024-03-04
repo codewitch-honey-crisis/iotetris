@@ -7,3 +7,6 @@ cigen/cigen/bin/
 cigen/cigen/obj/
 cigen/.vs/
 cigen/cigen/.vs/
+.vs/
+IoTetris/bin/
+IoTetris/obj/
